@@ -1,18 +1,19 @@
-const dns = require('dns');
+const mongoose = require('mongoose');
+const env = require('./env');
+const logger = require('../utils/logger');
 
-// Force Node.js to use Google DNS for all lookups in this process
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-const mongoose = require('mongoose')
+const connectDB = async () => {
+  try {
+    await mongoose.connect(env.mongoUri);
+    logger.info(`MongoDB connected: ${mongoose.connection.host}`);
+  } catch (err) {
+    logger.error(`MongoDB connection failed: ${err.message}`);
+    process.exit(1);
+  }
 
-function connectToDB(){
-    mongoose.connect(process.env.MONGO_URI)
-    .then(()=>{
-        console.log("Database Connected")
-    })
-    .catch((err)=>{
-        console.log("Error Occured",err)
-        process.exit(1)
-    })
-}
+  mongoose.connection.on('disconnected', () => {
+    logger.warn('MongoDB disconnected');
+  });
+};
 
-module.exports = connectToDB
+module.exports = connectDB;
