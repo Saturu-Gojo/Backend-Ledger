@@ -61,19 +61,6 @@ npm run dev
 npm run worker:dev
 ```
 
-## Testing
-
-```bash
-npm test
-```
-
-Tests run against an in-memory MongoDB **replica set** (via `mongodb-memory-server`), since `session.withTransaction()` requires one — a standalone `mongod` doesn't support multi-document transactions. Key tests:
-- Successful transfer with correct ledger entries
-- Insufficient funds → rejected, zero side effects
-- Same-account transfer → rejected
-- Repeated idempotency key → no double-processing
-- Frozen destination account → rejected
-- Concurrent transfers from the same account → no lost updates (debits always equal credits)
 
 ## API Overview
 
