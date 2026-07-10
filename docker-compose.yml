@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: bank_mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: bank_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: bank_api
+    restart: unless-stopped
+    command: node src/server.js
+    ports:
+      - '5000:5000'
+    env_file:
+      - .env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/bank_system
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    container_name: bank_email_worker
+    restart: unless-stopped
+    command: node src/worker.js
+    env_file:
+      - .env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/bank_system
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
