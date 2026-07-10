@@ -1,31 +1,34 @@
-const userModel = require('../models/user.model')
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const env = require('../config/env');
+const ApiError = require('../utils/ApiError');
+const asyncHandler = require('../utils/asyncHandler');
+const User = require('../models/User');
 
-async function authMiddleware(req,res, next) {
-    const token = req.cookies.token || req.headers.authorization?.split(" ")[1]
+const authMiddleware = asyncHandler(async (req, res, next) => {
+  const header = req.headers.authorization;
 
-    if(!token){
-        return res.status(401).json({
-            message : "Unauthorized access, token is missing"
-        })
-    }
+  if (!header || !header.startsWith('Bearer ')) {
+    throw ApiError.unauthorized('Access token missing');
+  }
 
-    try{
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
-        const user = await userModel.findById(decoded.userId)
+  const token = header.split(' ')[1];
 
-        req.user = user
-        
-        return next()
-    }catch(err){
-        return res.status(401).json({
-           message : "Unauthorized access, token is missing"
-     
-        })
-    }
-}
+  let decoded;
+  try {
+    decoded = jwt.verify(token, env.jwt.accessSecret);
+  } catch (err) {
+    throw ApiError.unauthorized(
+      err.name === 'TokenExpiredError' ? 'Access token expired' : 'Invalid access token'
+    );
+  }
 
+  const user = await User.findById(decoded.sub);
+  if (!user || !user.isActive) {
+    throw ApiError.unauthorized('User no longer exists or is inactive');
+  }
 
-module.exports = {
-    authMiddleware
-}
+  req.user = { id: user._id.toString(), role: user.role, email: user.email };
+  next();
+});
+
+module.exports = authMiddleware;
