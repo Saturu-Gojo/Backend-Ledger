@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const env = require('./env');
-const logger = require('../utils/logger');
+const mongoose = require("mongoose");
+const env = require("./env");
+const logger = require("../utils/logger");
 
 const connectDB = async () => {
   try {
@@ -11,8 +11,8 @@ const connectDB = async () => {
     process.exit(1);
   }
 
-  mongoose.connection.on('disconnected', () => {
-    logger.warn('MongoDB disconnected');
+  mongoose.connection.on("disconnected", () => {
+    logger.warn("MongoDB disconnected");
   });
 };
 

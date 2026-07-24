@@ -1,9 +1,9 @@
-const app = require('./app');
-const env = require('./config/env');
-const connectDB = require('./config/db');
-const logger = require('./utils/logger');
+const app = require("./app");
+const env = require("./config/env");
+const connectDB = require("./config/db");
+const logger = require("./utils/logger");
 // Side-effect import: wires the EventEmitter -> BullMQ bridge for emails
-require('./jobs/email.queue');
+require("./jobs/email.queue");
 
 const start = async () => {
   await connectDB();
@@ -17,8 +17,8 @@ const start = async () => {
     server.close(() => process.exit(0));
   };
 
-  process.on('SIGINT', () => shutdown('SIGINT'));
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 };
 
 start().catch((err) => {

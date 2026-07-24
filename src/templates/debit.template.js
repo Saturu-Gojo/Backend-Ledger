@@ -1,4 +1,11 @@
-module.exports = ({ name, amount, currency, accountNumber, balanceAfter, reference }) => ({
+module.exports = ({
+  name,
+  amount,
+  currency,
+  accountNumber,
+  balanceAfter,
+  reference,
+}) => ({
   subject: `Debit Alert: ${currency} ${amount} from your account`,
   html: `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">

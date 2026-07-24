@@ -1,5 +1,5 @@
-const rateLimit = require('express-rate-limit');
-const env = require('../config/env');
+const rateLimit = require("express-rate-limit");
+const env = require("../config/env");
 
 // General-purpose limiter applied app-wide
 const generalLimiter = rateLimit({
@@ -7,7 +7,10 @@ const generalLimiter = rateLimit({
   max: env.rateLimit.max,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many requests, please try again later.' },
+  message: {
+    success: false,
+    message: "Too many requests, please try again later.",
+  },
 });
 
 // Stricter limiter for auth + money-movement endpoints, to slow brute force
@@ -17,7 +20,7 @@ const strictLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many attempts, please slow down.' },
+  message: { success: false, message: "Too many attempts, please slow down." },
 });
 
 module.exports = { generalLimiter, strictLimiter };

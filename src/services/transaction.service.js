@@ -1,36 +1,44 @@
-const mongoose = require('mongoose');
-const { v4: uuid } = require('uuid');
-const Account = require('../models/Account');
-const Transaction = require('../models/Transaction');
-const LedgerEntry = require('../models/LedgerEntry');
-const ApiError = require('../utils/ApiError');
-const transactionEvents = require('../events/transaction.events');
-const logger = require('../utils/logger');
+const mongoose = require("mongoose");
+const { v4: uuid } = require("uuid");
+const Account = require("../models/Account");
+const Transaction = require("../models/Transaction");
+const LedgerEntry = require("../models/LedgerEntry");
+const ApiError = require("../utils/ApiError");
+const transactionEvents = require("../events/transaction.events");
+const logger = require("../utils/logger");
 
-const generateReference = () => `TXN-${uuid().replace(/-/g, '').toUpperCase()}`;
+const generateReference = () => `TXN-${uuid().replace(/-/g, "").toUpperCase()}`;
 
 /**
  * Applies a balance change to an account using optimistic locking.
  * Throws if the account was modified concurrently (version mismatch) or
  * if the resulting balance would go negative.
  */
-const applyLedgerMovement = async ({ session, account, type, amount, transactionId }) => {
-  const delta = type === 'CREDIT' ? amount : -amount;
+const applyLedgerMovement = async ({
+  session,
+  account,
+  type,
+  amount,
+  transactionId,
+}) => {
+  const delta = type === "CREDIT" ? amount : -amount;
 
-  if (type === 'DEBIT' && account.balance < amount) {
-    throw ApiError.badRequest(`Insufficient funds in account ${account.accountNumber}`);
+  if (type === "DEBIT" && account.balance < amount) {
+    throw ApiError.badRequest(
+      `Insufficient funds in account ${account.accountNumber}`,
+    );
   }
 
   const updated = await Account.findOneAndUpdate(
     { _id: account._id, version: account.version }, // optimistic lock check
     { $inc: { balance: delta, version: 1 } },
-    { new: true, session }
+    { new: true, session },
   );
 
   if (!updated) {
     // Someone else modified this account between our read and write.
     throw ApiError.conflict(
-      `Account ${account.accountNumber} was modified concurrently, please retry`
+      `Account ${account.accountNumber} was modified concurrently, please retry`,
     );
   }
 
@@ -44,7 +52,7 @@ const applyLedgerMovement = async ({ session, account, type, amount, transaction
         balanceAfter: updated.balance,
       },
     ],
-    { session }
+    { session },
   );
 
   return updated;
@@ -53,8 +61,10 @@ const applyLedgerMovement = async ({ session, account, type, amount, transaction
 const findActiveAccountOrThrow = async (accountNumber, session) => {
   const account = await Account.findOne({ accountNumber }).session(session);
   if (!account) throw ApiError.notFound(`Account ${accountNumber} not found`);
-  if (account.status !== 'ACTIVE') {
-    throw ApiError.badRequest(`Account ${accountNumber} is ${account.status}, cannot process`);
+  if (account.status !== "ACTIVE") {
+    throw ApiError.badRequest(
+      `Account ${accountNumber} is ${account.status}, cannot process`,
+    );
   }
   return account;
 };
@@ -70,14 +80,22 @@ const checkIdempotency = async (idempotencyKey) => {
  * session/transaction: either both the debit and credit (and their ledger
  * entries) succeed, or nothing is persisted at all.
  */
-const transfer = async ({ fromAccountNumber, toAccountNumber, amount, idempotencyKey, initiatedBy }) => {
+const transfer = async ({
+  fromAccountNumber,
+  toAccountNumber,
+  amount,
+  idempotencyKey,
+  initiatedBy,
+}) => {
   if (fromAccountNumber === toAccountNumber) {
-    throw ApiError.badRequest('Cannot transfer to the same account');
+    throw ApiError.badRequest("Cannot transfer to the same account");
   }
 
   const existing = await checkIdempotency(idempotencyKey);
   if (existing) {
-    logger.warn(`Duplicate transfer request blocked by idempotency key: ${idempotencyKey}`);
+    logger.warn(
+      `Duplicate transfer request blocked by idempotency key: ${idempotencyKey}`,
+    );
     return existing;
   }
 
@@ -86,30 +104,36 @@ const transfer = async ({ fromAccountNumber, toAccountNumber, amount, idempotenc
 
   try {
     await session.withTransaction(async () => {
-      const fromAccount = await findActiveAccountOrThrow(fromAccountNumber, session);
-      const toAccount = await findActiveAccountOrThrow(toAccountNumber, session);
+      const fromAccount = await findActiveAccountOrThrow(
+        fromAccountNumber,
+        session,
+      );
+      const toAccount = await findActiveAccountOrThrow(
+        toAccountNumber,
+        session,
+      );
 
       const [created] = await Transaction.create(
         [
           {
             reference: generateReference(),
-            type: 'TRANSFER',
+            type: "TRANSFER",
             fromAccount: fromAccount._id,
             toAccount: toAccount._id,
             amount,
-            status: 'PENDING',
+            status: "PENDING",
             idempotencyKey,
             initiatedBy,
           },
         ],
-        { session }
+        { session },
       );
       transaction = created;
 
       const updatedFrom = await applyLedgerMovement({
         session,
         account: fromAccount,
-        type: 'DEBIT',
+        type: "DEBIT",
         amount,
         transactionId: transaction._id,
       });
@@ -117,12 +141,12 @@ const transfer = async ({ fromAccountNumber, toAccountNumber, amount, idempotenc
       const updatedTo = await applyLedgerMovement({
         session,
         account: toAccount,
-        type: 'CREDIT',
+        type: "CREDIT",
         amount,
         transactionId: transaction._id,
       });
 
-      transaction.status = 'COMPLETED';
+      transaction.status = "COMPLETED";
       await transaction.save({ session });
 
       // Stash for the email events emitted after the transaction commits.
@@ -137,11 +161,11 @@ const transfer = async ({ fromAccountNumber, toAccountNumber, amount, idempotenc
     });
   } catch (err) {
     if (transaction) {
-      transaction.status = 'FAILED';
+      transaction.status = "FAILED";
       transaction.failureReason = err.message;
       await transaction.save().catch(() => {});
-      transactionEvents.emit('email.notify', {
-        type: 'FAILED',
+      transactionEvents.emit("email.notify", {
+        type: "FAILED",
         userId: initiatedBy,
         amount,
         reference: transaction.reference,
@@ -155,16 +179,16 @@ const transfer = async ({ fromAccountNumber, toAccountNumber, amount, idempotenc
 
   // Fire-and-forget notification events; never block the API response on email.
   const ctx = transaction._emailContext;
-  transactionEvents.emit('email.notify', {
-    type: 'DEBIT',
+  transactionEvents.emit("email.notify", {
+    type: "DEBIT",
     userId: ctx.fromUser,
     amount,
     reference: transaction.reference,
     balanceAfter: ctx.fromBalanceAfter,
     accountNumber: ctx.fromAccountNumber,
   });
-  transactionEvents.emit('email.notify', {
-    type: 'CREDIT',
+  transactionEvents.emit("email.notify", {
+    type: "CREDIT",
     userId: ctx.toUser,
     amount,
     reference: transaction.reference,
@@ -175,7 +199,12 @@ const transfer = async ({ fromAccountNumber, toAccountNumber, amount, idempotenc
   return transaction;
 };
 
-const deposit = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) => {
+const deposit = async ({
+  accountNumber,
+  amount,
+  idempotencyKey,
+  initiatedBy,
+}) => {
   const existing = await checkIdempotency(idempotencyKey);
   if (existing) return existing;
 
@@ -190,27 +219,27 @@ const deposit = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) =
         [
           {
             reference: generateReference(),
-            type: 'DEPOSIT',
+            type: "DEPOSIT",
             toAccount: account._id,
             amount,
-            status: 'PENDING',
+            status: "PENDING",
             idempotencyKey,
             initiatedBy,
           },
         ],
-        { session }
+        { session },
       );
       transaction = created;
 
       const updated = await applyLedgerMovement({
         session,
         account,
-        type: 'CREDIT',
+        type: "CREDIT",
         amount,
         transactionId: transaction._id,
       });
 
-      transaction.status = 'COMPLETED';
+      transaction.status = "COMPLETED";
       await transaction.save({ session });
 
       transaction._emailContext = {
@@ -221,7 +250,7 @@ const deposit = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) =
     });
   } catch (err) {
     if (transaction) {
-      transaction.status = 'FAILED';
+      transaction.status = "FAILED";
       transaction.failureReason = err.message;
       await transaction.save().catch(() => {});
     }
@@ -231,8 +260,8 @@ const deposit = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) =
   }
 
   const ctx = transaction._emailContext;
-  transactionEvents.emit('email.notify', {
-    type: 'CREDIT',
+  transactionEvents.emit("email.notify", {
+    type: "CREDIT",
     userId: ctx.userId,
     amount,
     reference: transaction.reference,
@@ -243,7 +272,12 @@ const deposit = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) =
   return transaction;
 };
 
-const withdraw = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) => {
+const withdraw = async ({
+  accountNumber,
+  amount,
+  idempotencyKey,
+  initiatedBy,
+}) => {
   const existing = await checkIdempotency(idempotencyKey);
   if (existing) return existing;
 
@@ -258,27 +292,27 @@ const withdraw = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) 
         [
           {
             reference: generateReference(),
-            type: 'WITHDRAWAL',
+            type: "WITHDRAWAL",
             fromAccount: account._id,
             amount,
-            status: 'PENDING',
+            status: "PENDING",
             idempotencyKey,
             initiatedBy,
           },
         ],
-        { session }
+        { session },
       );
       transaction = created;
 
       const updated = await applyLedgerMovement({
         session,
         account,
-        type: 'DEBIT',
+        type: "DEBIT",
         amount,
         transactionId: transaction._id,
       });
 
-      transaction.status = 'COMPLETED';
+      transaction.status = "COMPLETED";
       await transaction.save({ session });
 
       transaction._emailContext = {
@@ -289,7 +323,7 @@ const withdraw = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) 
     });
   } catch (err) {
     if (transaction) {
-      transaction.status = 'FAILED';
+      transaction.status = "FAILED";
       transaction.failureReason = err.message;
       await transaction.save().catch(() => {});
     }
@@ -299,8 +333,8 @@ const withdraw = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) 
   }
 
   const ctx = transaction._emailContext;
-  transactionEvents.emit('email.notify', {
-    type: 'DEBIT',
+  transactionEvents.emit("email.notify", {
+    type: "DEBIT",
     userId: ctx.userId,
     amount,
     reference: transaction.reference,
@@ -311,9 +345,14 @@ const withdraw = async ({ accountNumber, amount, idempotencyKey, initiatedBy }) 
   return transaction;
 };
 
-const getHistoryForAccount = async (accountId, { page = 1, limit = 20 } = {}) => {
+const getHistoryForAccount = async (
+  accountId,
+  { page = 1, limit = 20 } = {},
+) => {
   const skip = (page - 1) * limit;
-  const filter = { $or: [{ fromAccount: accountId }, { toAccount: accountId }] };
+  const filter = {
+    $or: [{ fromAccount: accountId }, { toAccount: accountId }],
+  };
 
   const [items, total] = await Promise.all([
     Transaction.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -325,7 +364,7 @@ const getHistoryForAccount = async (accountId, { page = 1, limit = 20 } = {}) =>
 
 const getByReference = async (reference) => {
   const transaction = await Transaction.findOne({ reference });
-  if (!transaction) throw ApiError.notFound('Transaction not found');
+  if (!transaction) throw ApiError.notFound("Transaction not found");
   return transaction;
 };
 

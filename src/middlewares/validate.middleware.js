@@ -1,4 +1,4 @@
-const ApiError = require('../utils/ApiError');
+const ApiError = require("../utils/ApiError");
 
 // Usage: router.post('/transfer', validate(transferSchema), handler)
 // schema should be a Zod object shaped like { body: z.object({...}), params: z.object({...}) }
@@ -11,10 +11,10 @@ const validate = (schema) => (req, res, next) => {
 
   if (!result.success) {
     const details = result.error.issues.map((i) => ({
-      path: i.path.join('.'),
+      path: i.path.join("."),
       message: i.message,
     }));
-    return next(ApiError.badRequest('Invalid request data', details));
+    return next(ApiError.badRequest("Invalid request data", details));
   }
 
   // Use parsed/coerced values downstream

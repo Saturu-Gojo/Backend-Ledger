@@ -1,11 +1,11 @@
-const nodemailer = require('nodemailer');
-const env = require('../config/env');
-const logger = require('../utils/logger');
+const nodemailer = require("nodemailer");
+const env = require("../config/env");
+const logger = require("../utils/logger");
 
-const debitTemplate = require('../templates/debit.template');
-const creditTemplate = require('../templates/credit.template');
-const pendingTemplate = require('../templates/pending.template');
-const failedTemplate = require('../templates/failed.template');
+const debitTemplate = require("../templates/debit.template");
+const creditTemplate = require("../templates/credit.template");
+const pendingTemplate = require("../templates/pending.template");
+const failedTemplate = require("../templates/failed.template");
 
 const templates = {
   DEBIT: debitTemplate,

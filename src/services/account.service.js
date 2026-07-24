@@ -1,13 +1,13 @@
-const { v4: uuid } = require('uuid');
-const Account = require('../models/Account');
-const ApiError = require('../utils/ApiError');
+const { v4: uuid } = require("uuid");
+const Account = require("../models/Account");
+const ApiError = require("../utils/ApiError");
 
 const generateAccountNumber = () => {
   // e.g. ACC-7F3C9B1A2D
-  return `ACC-${uuid().replace(/-/g, '').slice(0, 10).toUpperCase()}`;
+  return `ACC-${uuid().replace(/-/g, "").slice(0, 10).toUpperCase()}`;
 };
 
-const createAccount = async (userId, { currency = 'INR' } = {}) => {
+const createAccount = async (userId, { currency = "INR" } = {}) => {
   const account = await Account.create({
     user: userId,
     accountNumber: generateAccountNumber(),
@@ -22,13 +22,13 @@ const getMyAccounts = async (userId) => {
 
 const getAccountById = async (accountId, requestingUser) => {
   const account = await Account.findById(accountId);
-  if (!account) throw ApiError.notFound('Account not found');
+  if (!account) throw ApiError.notFound("Account not found");
 
   if (
-    requestingUser.role !== 'admin' &&
+    requestingUser.role !== "admin" &&
     account.user.toString() !== requestingUser.id
   ) {
-    throw ApiError.forbidden('You do not have access to this account');
+    throw ApiError.forbidden("You do not have access to this account");
   }
   return account;
 };
@@ -37,9 +37,9 @@ const setAccountStatus = async (accountId, status) => {
   const account = await Account.findByIdAndUpdate(
     accountId,
     { status },
-    { new: true }
+    { new: true },
   );
-  if (!account) throw ApiError.notFound('Account not found');
+  if (!account) throw ApiError.notFound("Account not found");
   return account;
 };
 

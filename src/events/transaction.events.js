@@ -1,4 +1,4 @@
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 
 // Decouples transaction.service.js from the email/notification pipeline.
 // transaction.service.js only ever calls .emit() — it has no idea BullMQ exists.

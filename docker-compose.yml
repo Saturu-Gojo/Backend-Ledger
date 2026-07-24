@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mongo:
@@ -6,7 +6,7 @@ services:
     container_name: bank_mongo
     restart: unless-stopped
     ports:
-      - '27017:27017'
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
@@ -20,9 +20,9 @@ services:
     container_name: bank_redis
     restart: unless-stopped
     ports:
-      - '6379:6379'
+      - "6379:6379"
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,7 +33,7 @@ services:
     restart: unless-stopped
     command: node src/server.js
     ports:
-      - '5000:5000'
+      - "5000:5000"
     env_file:
       - .env
     environment:

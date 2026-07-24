@@ -32,25 +32,31 @@ src/
 ## Setup
 
 ### 1. Install dependencies
+
 ```bash
 npm install
 ```
 
 ### 2. Configure environment
+
 ```bash
 cp .env.example .env
 ```
+
 Fill in `MONGO_URI`, JWT secrets, Redis host/port, and SMTP credentials.
 
 **Gmail SMTP note**: you need a 16-character **App Password**, not your normal Gmail password. Enable 2FA on your Google account, then generate one at https://myaccount.google.com/apppasswords.
 
 ### 3. Run with Docker (recommended)
+
 ```bash
 docker compose up --build
 ```
+
 This starts 4 containers: `api`, `worker`, `mongo`, `redis`.
 
 ### 4. Or run locally
+
 You'll need MongoDB (as a replica set — required for multi-document transactions) and Redis running locally.
 
 ```bash
@@ -60,7 +66,6 @@ npm run dev
 # Terminal 2
 npm run worker:dev
 ```
-
 
 ## API Overview
 
@@ -100,6 +105,7 @@ curl -X POST http://localhost:5000/api/v1/transactions/transfer \
 ```
 
 This will, in order:
+
 1. Validate both accounts are `ACTIVE`
 2. Debit the source, credit the destination, write two ledger entries — all in one MongoDB transaction
 3. Emit `DEBIT` and `CREDIT` email events
