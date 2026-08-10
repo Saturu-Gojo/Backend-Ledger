@@ -22,4 +22,11 @@ const logout = asyncHandler(async (req, res) => {
   return new ApiResponse(200, "Logged out successfully").send(res);
 });
 
-module.exports = { register, login, refresh, logout };
+const me = asyncHandler(async (req, res) => {
+  const user = await authService.getMe(req.user.id);
+  return new ApiResponse(200, "User profile fetched successfully", user).send(
+    res,
+  );
+});
+
+module.exports = { register, login, refresh, logout, me };

@@ -2,8 +2,9 @@ const app = require("./app");
 const env = require("./config/env");
 const connectDB = require("./config/db");
 const logger = require("./utils/logger");
-// Side-effect import: wires the EventEmitter -> BullMQ bridge for emails
+// Side-effect import: wires the EventEmitter -> BullMQ bridge for emails & runs worker listener
 require("./jobs/email.queue");
+require("./jobs/email.worker");
 
 const start = async () => {
   await connectDB();

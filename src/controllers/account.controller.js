@@ -39,10 +39,20 @@ const unfreezeAccount = asyncHandler(async (req, res) => {
   return new ApiResponse(200, "Account reactivated", account).send(res);
 });
 
+const getAllAccounts = asyncHandler(async (req, res) => {
+  const accounts = await accountService.getAllAccounts();
+  return new ApiResponse(
+    200,
+    "All accounts fetched successfully",
+    accounts,
+  ).send(res);
+});
+
 module.exports = {
   createAccount,
   getMyAccounts,
   getAccountById,
   freezeAccount,
   unfreezeAccount,
+  getAllAccounts,
 };

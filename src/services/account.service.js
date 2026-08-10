@@ -43,9 +43,16 @@ const setAccountStatus = async (accountId, status) => {
   return account;
 };
 
+const getAllAccounts = async () => {
+  return Account.find()
+    .populate("user", "name email role")
+    .sort({ createdAt: -1 });
+};
+
 module.exports = {
   createAccount,
   getMyAccounts,
   getAccountById,
   setAccountStatus,
+  getAllAccounts,
 };

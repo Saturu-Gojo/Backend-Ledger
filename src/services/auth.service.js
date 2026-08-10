@@ -72,4 +72,10 @@ const logout = async (userId) => {
   await User.findByIdAndUpdate(userId, { $unset: { refreshTokenHash: 1 } });
 };
 
-module.exports = { register, login, refresh, logout };
+const getMe = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) throw ApiError.notFound("User not found");
+  return user.toSafeObject();
+};
+
+module.exports = { register, login, refresh, logout, getMe };

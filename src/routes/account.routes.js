@@ -9,6 +9,7 @@ router.use(authMiddleware);
 
 router.post("/", accountController.createAccount);
 router.get("/me", accountController.getMyAccounts);
+router.get("/all", roleMiddleware("admin"), accountController.getAllAccounts);
 router.get("/:id", accountController.getAccountById);
 
 router.patch(

@@ -32,7 +32,10 @@ router.post(
   transactionController.withdraw,
 );
 
+router.get("/ledger", transactionController.getLedger);
+router.get("/ledger/:accountId", transactionController.getLedger);
 router.get("/account/:accountId", transactionController.getHistory);
+router.get("/ref/:reference", transactionController.getByReference);
 router.get("/:reference", transactionController.getByReference);
 
 module.exports = router;

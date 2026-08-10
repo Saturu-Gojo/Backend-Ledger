@@ -2,11 +2,12 @@ const { Queue } = require("bullmq");
 const connection = require("../config/redis");
 const transactionEvents = require("../events/transaction.events");
 const logger = require("../utils/logger");
+const { processEmailNotification } = require("./email.worker");
 
 const emailQueue = new Queue("email-notifications", { connection });
 
 // Bridges the in-process event emitter to a durable, retryable Redis-backed job.
-// If the process restarts before the email worker runs, the job is still in Redis.
+// If Redis is offline, falls back to direct async background sending.
 transactionEvents.on("email.notify", async (payload) => {
   try {
     await emailQueue.add("sendTransactionEmail", payload, {
@@ -16,8 +17,10 @@ transactionEvents.on("email.notify", async (payload) => {
       removeOnFail: { age: 86400 },
     });
   } catch (err) {
-    // Queueing itself should never crash the request/transaction flow.
-    logger.error(`Failed to enqueue email job: ${err.message}`);
+    logger.warn(`Redis queue notice: ${err.message}. Falling back to direct email delivery...`);
+    processEmailNotification(payload).catch((fallbackErr) => {
+      logger.error(`Direct email fallback failed: ${fallbackErr.message}`);
+    });
   }
 });
 

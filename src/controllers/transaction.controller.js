@@ -57,4 +57,25 @@ const getByReference = asyncHandler(async (req, res) => {
   return new ApiResponse(200, "Transaction fetched", transaction).send(res);
 });
 
-module.exports = { transfer, deposit, withdraw, getHistory, getByReference };
+const getLedger = asyncHandler(async (req, res) => {
+  let accountId = req.params.accountId;
+  if (accountId) {
+    await accountService.getAccountById(accountId, req.user);
+  }
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 50;
+  const result = await transactionService.getLedgerEntries(accountId, {
+    page,
+    limit,
+  });
+  return new ApiResponse(200, "Ledger entries fetched", result).send(res);
+});
+
+module.exports = {
+  transfer,
+  deposit,
+  withdraw,
+  getHistory,
+  getByReference,
+  getLedger,
+};

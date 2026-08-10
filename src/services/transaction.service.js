@@ -368,10 +368,28 @@ const getByReference = async (reference) => {
   return transaction;
 };
 
+const getLedgerEntries = async (accountId, { page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+  const filter = accountId ? { account: accountId } : {};
+
+  const [items, total] = await Promise.all([
+    LedgerEntry.find(filter)
+      .populate("account", "accountNumber currency user")
+      .populate("transaction", "reference type status idempotencyKey")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    LedgerEntry.countDocuments(filter),
+  ]);
+
+  return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+};
+
 module.exports = {
   transfer,
   deposit,
   withdraw,
   getHistoryForAccount,
   getByReference,
+  getLedgerEntries,
 };

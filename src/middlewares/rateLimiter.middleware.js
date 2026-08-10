@@ -17,7 +17,9 @@ const generalLimiter = rateLimit({
 // login attempts and rapid-fire transfer abuse.
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max:
+    parseInt(process.env.RATE_LIMIT_STRICT_MAX, 10) ||
+    (env.nodeEnv === "development" ? 500 : 15),
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many attempts, please slow down." },

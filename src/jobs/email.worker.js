@@ -5,44 +5,48 @@ const User = require("../models/User");
 const Account = require("../models/Account");
 const emailService = require("../services/email.service");
 
+const processEmailNotification = async (data) => {
+  const {
+    type,
+    userId,
+    amount,
+    currency,
+    reference,
+    balanceAfter,
+    accountNumber,
+    reason,
+  } = data;
+
+  // Resolve the recipient's current email at send-time, not at enqueue-time,
+  // so the email always reflects up-to-date contact info.
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error(`User ${userId} not found - cannot send ${type} email`);
+  }
+
+  let resolvedAccountNumber = accountNumber;
+  if (!resolvedAccountNumber) {
+    const account = await Account.findOne({ user: userId });
+    resolvedAccountNumber = account ? account.accountNumber : "N/A";
+  }
+
+  await emailService.sendTransactionEmail({
+    type,
+    to: user.email,
+    name: user.name,
+    amount,
+    currency: currency || "INR",
+    reference,
+    balanceAfter,
+    accountNumber: resolvedAccountNumber,
+    reason,
+  });
+};
+
 const worker = new Worker(
   "email-notifications",
   async (job) => {
-    const {
-      type,
-      userId,
-      amount,
-      currency,
-      reference,
-      balanceAfter,
-      accountNumber,
-      reason,
-    } = job.data;
-
-    // Resolve the recipient's current email at send-time, not at enqueue-time,
-    // so the email always reflects up-to-date contact info.
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new Error(`User ${userId} not found - cannot send ${type} email`);
-    }
-
-    let resolvedAccountNumber = accountNumber;
-    if (!resolvedAccountNumber) {
-      const account = await Account.findOne({ user: userId });
-      resolvedAccountNumber = account ? account.accountNumber : "N/A";
-    }
-
-    await emailService.sendTransactionEmail({
-      type,
-      to: user.email,
-      name: user.name,
-      amount,
-      currency: currency || "INR",
-      reference,
-      balanceAfter,
-      accountNumber: resolvedAccountNumber,
-      reason,
-    });
+    await processEmailNotification(job.data);
   },
   { connection, concurrency: 5 },
 );
@@ -55,4 +59,4 @@ worker.on("failed", (job, err) => {
   logger.error(`Email job ${job?.id} failed after retries: ${err.message}`);
 });
 
-module.exports = worker;
+module.exports = { worker, processEmailNotification };
