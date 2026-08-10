@@ -1,6 +1,10 @@
-# Bank Transaction System
+# Aether Ledger - Bank Transaction System
 
-An advanced backend project simulating a real bank's money-movement engine, built with Node.js, Express, and MongoDB. Demonstrates double-entry accounting, ACID-safe transfers, JWT auth with RBAC, and event-driven email notifications via BullMQ + Redis.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-10B981?style=for-the-badge&logo=render&logoColor=white)](https://backend-ledger-8538.onrender.com/)
+
+An advanced full-stack financial transaction engine and double-entry ledger system built with Node.js, Express, MongoDB Atlas, Redis, and React (Vite).
+
+### 🚀 Live Application URL: [https://backend-ledger-8538.onrender.com/](https://backend-ledger-8538.onrender.com/)
 
 ## Key Architectural Decisions
 
